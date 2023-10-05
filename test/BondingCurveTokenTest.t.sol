@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.21;
 
-import {Test, console2} from "forge-std/Test.sol";
-import {StdCheats, console2} from "forge-std/StdCheats.sol";
+import {Test} from "forge-std/Test.sol";
+import {StdCheats} from "forge-std/StdCheats.sol";
 import {BondingCurveToken} from "../src/BondingCurveToken.sol";
 import {DeployBondingCurveToken} from "../script/DeployBondingCurveToken.s.sol";
 
@@ -13,6 +13,9 @@ contract BondingCurveTokenTest is StdCheats, Test {
     uint256 public BASE_PRICE;
     uint256 public PRICE_FACTOR;
 
+    string constant NAME = "BondingCurveToken";
+    string constant SYMBOL = "BCT";
+
     address public deployerAddress;
     address public alice;
     address public bob;
@@ -20,7 +23,7 @@ contract BondingCurveTokenTest is StdCheats, Test {
     function setUp() public {
         deployer = new DeployBondingCurveToken();
         bondingCurveToken = deployer.run();
-
+        
         BASE_PRICE = bondingCurveToken.BASE_PRICE();
         PRICE_FACTOR = bondingCurveToken.PRICE_FACTOR();
 

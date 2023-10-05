@@ -1,14 +1,11 @@
-/**
- * TODO: Implement EIP1363 to enable buy/sell via sending ETH/BCT directly to contract
- * TODO: Add more tests
- */
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.21;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
-// import {ERC1363} from "lib/erc1363-payable-token/contracts/token/ERC1363/ERC1363.sol";
+import {ERC1363} from "lib/erc1363-payable-token/contracts/token/ERC1363/ERC1363.sol";
+import {ERC1363Payable} from "lib/erc1363-payable-token/contracts/payment/ERC1363Payable.sol";
 
 /**
  * @title BondingCurveToken
@@ -16,6 +13,7 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
  * The pricing formula follows y = mx + b where y is the token price, m is the price factor,
  * x is the total supply, and b is the base price.
  */
+// contract BondingCurveToken is ERC20, ERC1363, ERC1363Payable, Ownable2Step {
 contract BondingCurveToken is ERC20, Ownable2Step {
 
     /// @notice Event emitted when tokens are purchased.
@@ -26,6 +24,9 @@ contract BondingCurveToken is ERC20, Ownable2Step {
 
     /// @notice Event emitted when excess ether is withdrawn by the owner.
     event ExcessWithdrawn(address indexed owner, uint256 amount);
+
+    /// @notice Event emitted when the sell lockup time is updated.
+    event SellLockupTimeUpdated(uint256 newLockupTime);
 
     /// @notice Base price of token
     uint256 public constant BASE_PRICE = 0 ether; 
@@ -43,9 +44,34 @@ contract BondingCurveToken is ERC20, Ownable2Step {
     mapping(address => uint256) private lastPurchaseTime;
 
     /**
-     * @dev Constructor to initialize the ERC20 token.
+     * @dev Constructor that initializes the BondingCurveToken.
+     * @param name The name of the token.
+     * @param symbol The symbol of the token.
      */
-    constructor() ERC20("BondingCurveToken", "BCT") {}
+    constructor(string memory name, string memory symbol) 
+        ERC20(name, symbol) 
+        // ERC1363Payable(this)  // self-reference as it is its own accepted token
+    {}
+
+    // function supportsInterface(bytes4 interfaceId) public view override(ERC1363, ERC1363Payable) returns (bool) {
+    //     return ERC1363.supportsInterface(interfaceId) || ERC1363Payable.supportsInterface(interfaceId);
+    // }
+
+    /**
+     * @dev Handles the receipt of ERC1363 tokens and triggers a token sale.
+     * @param operator The operator triggering the transfer.
+     * @param from The sender of tokens.
+     * @param amount The amount of tokens sent.
+     * @param data Additional data with no specified format.
+     */
+    // function _transferReceived(
+    //     address operator, 
+    //     address from, 
+    //     uint256 amount, 
+    //     bytes memory data
+    // ) internal override {
+    //     sellTokens(from, amount);  
+    // }
 
     /**
      * @dev Allows users to purchase tokens with Ether, based on the current price from the bonding curve.
@@ -82,7 +108,7 @@ contract BondingCurveToken is ERC20, Ownable2Step {
      * based on the current price from the bonding curve.
      * @param tokenAmount The number of tokens the user wants to sell.
      */
-    function sellTokens(uint256 tokenAmount) external {
+    function sellTokens(uint256 tokenAmount) public {
         require(tokenAmount > 0, "Cannot sell zero tokens");
         require(balanceOf(msg.sender) >= tokenAmount, "Insufficient tokens");
         require(block.timestamp >= lastPurchaseTime[msg.sender] + sellLockupTime, "Tokens are locked up");
@@ -167,18 +193,27 @@ contract BondingCurveToken is ERC20, Ownable2Step {
     }
 
     /**
-     * @dev Allows the owner to update the lockup time to adapt to ongoing security requirements.
+     * @dev Updates the sell lockup time.
      * @param newLockupTime The new lockup time in seconds.
      */
     function updateSellLockupTime(uint256 newLockupTime) external onlyOwner {
         sellLockupTime = newLockupTime;
+        emit SellLockupTimeUpdated(newLockupTime);
+
+    }
+
+    // Helper function to calculate square root
+    function sqrt(uint256 x) internal pure returns (uint256 y) {
+        uint256 z = (x + 1) / 2;
+        y = x;
+        while (z < y) {
+            y = z;
+            z = (x / z + z) / 2;
+        }
     }
 
     /**
-     * @dev External payable function to automatically purchase tokens when Ether is sent directly 
-     * to the contract without calling the buyTokens function. It calculates the token amount based 
-     * on the sent Ether and current price, then mints and sends the tokens to the sender.
-     * TODO: Implement EIP1363 to enable buy/sell via sending ETH/BCT directly to contract
+     * @dev Function that is called when Ether is sent directly to the contract address.
      */
     receive() external payable {
         uint256 currentSupply = totalSupply();
@@ -197,15 +232,5 @@ contract BondingCurveToken is ERC20, Ownable2Step {
         _reserve += etherSent;
 
         emit TokensPurchased(msg.sender, tokenAmount, etherSent);
-    }
-
-    // Helper function to calculate square root
-    function sqrt(uint256 x) internal pure returns (uint256 y) {
-        uint256 z = (x + 1) / 2;
-        y = x;
-        while (z < y) {
-            y = z;
-            z = (x / z + z) / 2;
-        }
     }
 }

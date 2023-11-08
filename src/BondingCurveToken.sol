@@ -142,9 +142,10 @@ contract BondingCurveToken is ERC20, Ownable2Step {
         uint256 balance = address(this).balance;
         require(balance > _reserve, "No excess Ether to withdraw");
 
-        emit ExcessWithdrawn(owner(), excess);
-
         uint256 excess = balance - _reserve;
+
+        emit ExcessWithdrawn(owner(), excess);
+        
         (bool sent, ) = payable(owner()).call{value: excess}("");
         require(sent, "Failed to withdraw Ether");
     }

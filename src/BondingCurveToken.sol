@@ -93,14 +93,14 @@ contract BondingCurveToken is ERC20, Ownable2Step {
         lastPurchaseTime[msg.sender] = block.timestamp;
         _reserve += cost;
 
+        emit TokensPurchased(msg.sender, tokenAmount, cost);
+
         // Refund excess ether
         uint256 excess = msg.value - cost;
         if (excess > 0) {
             (bool sent, ) = payable(msg.sender).call{value: excess}("");
             require(sent, "Failed to refund excess ether");
         }
-
-        emit TokensPurchased(msg.sender, tokenAmount, cost);
     }
 
     /**
@@ -119,12 +119,12 @@ contract BondingCurveToken is ERC20, Ownable2Step {
         // Updated pricing formula for selling
         uint256 revenue = (currentSupply**2 - newSupply**2) / 2;
 
+        emit TokensSold(msg.sender, tokenAmount, revenue);
+
         _burn(msg.sender, tokenAmount);
         _reserve -= revenue;
         (bool sent, ) = payable(msg.sender).call{value: revenue}("");
         require(sent, "Failed to send Ether");
-
-        emit TokensSold(msg.sender, tokenAmount, revenue);
     }
 
     /**
@@ -142,11 +142,11 @@ contract BondingCurveToken is ERC20, Ownable2Step {
         uint256 balance = address(this).balance;
         require(balance > _reserve, "No excess Ether to withdraw");
 
+        emit ExcessWithdrawn(owner(), excess);
+
         uint256 excess = balance - _reserve;
         (bool sent, ) = payable(owner()).call{value: excess}("");
         require(sent, "Failed to withdraw Ether");
-
-        emit ExcessWithdrawn(owner(), excess);
     }
 
     /**

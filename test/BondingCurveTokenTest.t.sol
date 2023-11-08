@@ -14,7 +14,6 @@ contract BondingCurveTokenTest is StdCheats, Test {
     uint256 public PRICE_FACTOR;
 
     string constant NAME = "BondingCurveToken";
-    string constant SYMBOL = "BCT";
 
     address public deployerAddress;
     address public alice;
@@ -33,7 +32,7 @@ contract BondingCurveTokenTest is StdCheats, Test {
 
     // test token name
     function test_TokenName() public {
-        assertEq(bondingCurveToken.name(), "BondingCurveToken");
+        assertEq(bondingCurveToken.name(), NAME);
     }
 
     // test base price
